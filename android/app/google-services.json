@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "600836623158",
+    "project_id": "talent2trophy",
+    "storage_bucket": "talent2trophy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:600836623158:android:40036a814cad6253408197",
+        "android_client_info": {
+          "package_name": "com.example.talent2trophy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqaek_YixPVzPXGszXnYfBw3kOPH4mgcM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
