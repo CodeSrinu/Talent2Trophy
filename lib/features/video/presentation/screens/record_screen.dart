@@ -9,8 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'package:image/image.dart' as img;
-import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../cloud/drive_upload_service.dart';
+import '../../services/quality_gate_service.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
@@ -32,8 +34,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
   bool _isRecording = false;
   bool _initFailed = false;
   final PoseDetector _poseDetector = PoseDetector(options: PoseDetectorOptions(mode: PoseDetectionMode.stream));
-  bool _isProcessingFrame = false;
-
   // Pre-flight state
   String? _preFlightMessage;
   bool _isBrightnessOk = false;
@@ -96,65 +96,24 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
       if (!mounted || _controller == null || !_controller!.value.isInitialized || _isRecording) return;
       try {
         final preview = await _controller!.takePicture();
-        final brightnessOk = await _estimateBrightnessOk(preview.path);
-
-        // Pose analysis on the still frame
-        final input = InputImage.fromFilePath(preview.path);
-        final poses = await _poseDetector.processImage(input);
-        bool bodyVisible = false;
-        double avgConf = 0.0;
-        if (poses.isNotEmpty) {
-          final lm = poses.first.landmarks.values.toList();
-          bodyVisible = lm.length >= 33; // all landmarks present
-          if (lm.isNotEmpty) {
-            avgConf = lm.map((e) => e.likelihood).reduce((a, b) => a + b) / lm.length;
-          }
-        }
-        final confidenceOk = avgConf >= 0.7;
-
-        String? msg;
-        if (!brightnessOk) {
-          msg = 'The lighting is a bit low. Please find a brighter area to get the best analysis.';
-        } else if (!bodyVisible) {
-          msg = 'Please stand further back. We need to see your whole body to analyze your performance.';
-        } else if (!confidenceOk) {
-          msg = 'The app is having trouble seeing you clearly. Please try again with a better camera angle or lighting.';
-        }
+        final gate = await const QualityGateService().evaluate(
+          imagePath: preview.path,
+          poseDetector: _poseDetector,
+        );
 
         if (mounted) {
           setState(() {
-            _isBrightnessOk = brightnessOk;
-            _isBodyVisible = bodyVisible;
-            _isPoseConfidenceOk = confidenceOk;
-            _preFlightMessage = msg;
+            _isBrightnessOk = gate.brightnessOk;
+            _isBodyVisible = gate.bodyVisible;
+            _isPoseConfidenceOk = gate.poseConfidenceOk;
+            _preFlightMessage = gate.message;
           });
         }
       } catch (_) {}
     });
   }
 
-  Future<bool> _estimateBrightnessOk(String path) async {
-    try {
-      final bytes = await File(path).readAsBytes();
-      final decoded = img.decodeImage(bytes);
-      if (decoded == null) return true; // don't block if decode failed
-      // Downscale for speed
-      final small = img.copyResize(decoded, width: 64);
-      final data = small.getBytes(order: img.ChannelOrder.rgb);
-      int sum = 0;
-      for (int i = 0; i < data.length; i += 3) {
-        final r = data[i];
-        final g = data[i + 1];
-        final b = data[i + 2];
-        final lum = (0.2126 * r + 0.7152 * g + 0.0722 * b).round();
-        sum += lum;
-      }
-      final avg = sum / (data.length / 3);
-      return avg >= 50.0; // threshold per spec
-    } catch (_) {
-      return true; // avoid blocking recording if something goes wrong
-    }
-  }
+
 
 
   Future<void> _toggleRecord() async {
@@ -226,6 +185,52 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
 
         // Show AI analysis option
         _showAnalysisOption(context, video);
+
+        // Optional: Upload artifacts to Google Drive (overlay + JSON) after analysis completes
+        // In this build, we upload only the raw captured video as a placeholder. Replace with overlay.mp4 & analysis.json.
+        try {
+          final drive = DriveUploadService();
+          final folderId = await drive.ensureFolder('Talent2Trophy Uploads');
+          final overlayPath = saved.path.replaceAll('.mp4', '_overlay.mp4');
+          final jsonPath = saved.path.replaceAll('.mp4', '_analysis.json');
+          final overlayFile = File(overlayPath);
+          final jsonFile = File(jsonPath);
+          if (await overlayFile.exists() && await jsonFile.exists()) {
+            final overlayUrl = await drive.uploadFile(parentFolderId: folderId, file: overlayFile, mimeType: 'video/mp4');
+            final jsonUrl = await drive.uploadFile(parentFolderId: folderId, file: jsonFile, mimeType: 'application/json');
+            try {
+              final uid = FirebaseAuth.instance.currentUser?.uid;
+              if (uid != null) {
+                final doc = FirebaseFirestore.instance.collection('users').doc(uid)
+                    .collection('analyses').doc(video.id);
+                await doc.set({
+                  'driveOverlayUrl': overlayUrl,
+                  'driveJsonUrl': jsonUrl,
+                  'updatedAt': FieldValue.serverTimestamp(),
+                }, SetOptions(merge: true));
+              }
+            } catch (_) {}
+            if (!context.mounted) return;
+            // Mark user as having cloud artifacts for Pro badge
+            try {
+              await ref.read(authProvider.notifier).updateUserData({'hasCloudArtifacts': true});
+            } catch (_) {}
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Uploaded overlay+JSON to Drive.')),
+            );
+          } else {
+            await drive.uploadFile(parentFolderId: folderId, file: File(saved.path), mimeType: 'video/mp4');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Uploaded raw video to Drive.')),
+              );
+            }
+          }
+        } catch (e) {
+          // Non-fatal; demo should continue offline
+        }
+
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

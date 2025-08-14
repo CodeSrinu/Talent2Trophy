@@ -173,17 +173,22 @@ class _PlayerHomeScreenState extends ConsumerState<PlayerHomeScreen> {
     final user = ref.read(currentUserProvider).value;
     if (user == null) return;
 
-    // Force re-check for existing users by ignoring the flag if profile is incomplete
-    // This fixes the issue where old app users have persistent popup
-    final missing = user.isPlayer && (
+    // Only show profile completion dialog if:
+    // 1. User has never completed initial profile setup AND
+    // 2. Profile is actually incomplete AND
+    // 3. We haven't shown the dialog in this session
+    final isProfileIncomplete = user.isPlayer && (
       user.sport == null ||
       user.gender == null ||
       user.region == null ||
       user.age == null
     );
 
-    // Show dialog if profile incomplete AND (not shown before OR profile is actually incomplete)
-    if (missing && (!_hasShownProfileDialog || missing)) {
+    final shouldShowDialog = !user.hasCompletedInitialProfile &&
+                            isProfileIncomplete &&
+                            !_hasShownProfileDialog;
+
+    if (shouldShowDialog) {
       _hasShownProfileDialog = true;
       showDialog(
         context: context,

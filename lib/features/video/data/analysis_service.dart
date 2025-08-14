@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../domain/local_video.dart';
 import 'video_repository.dart';
 import '../analysis/football_kick_analyzer.dart';
+import '../services/overlay_renderer.dart';
 
 class AnalysisService {
   final VideoRepository _repo;
@@ -29,6 +33,28 @@ class AnalysisService {
 
     // Run on-device analysis based on sport/drill
     final result = await _dispatchAnalyze(video);
+
+    // Persist simple analysis.json and overlay.mp4 for offline demo
+    try {
+      final json = {
+        'id': video.id,
+        'sport': video.sport,
+        'drill': video.drill,
+        'score': result['score'],
+        'metrics': result['metrics'],
+      };
+      final file = File(video.filePath);
+      final dir = file.parent;
+      final baseName = file.uri.pathSegments.last.replaceAll('.mp4', '');
+      final jsonPath = '${dir.path}/${baseName}_analysis.json';
+      await File(jsonPath).writeAsString(jsonEncode(json));
+
+      // Create overlay with metric tiles
+      await OverlayRenderer.render(
+        videoPath: video.filePath,
+        metrics: Map<String, dynamic>.from(result['metrics'] as Map),
+      );
+    } catch (_) {}
 
     final completed = LocalVideo(
       id: video.id,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../home/presentation/player_home_screen.dart';
 import '../../drills/presentation/drills_screen.dart';
+import '../../video/presentation/screens/library_screen.dart';
 import '../../leaderboard/presentation/leaderboard_screen.dart';
 
 class PlayerShell extends ConsumerStatefulWidget {
@@ -19,6 +20,7 @@ class _PlayerShellState extends ConsumerState<PlayerShell> {
   final _pages = const [
     PlayerHomeScreen(),
     DrillsScreen(),
+    LibraryScreen(),
     LeaderboardScreen(),
   ];
 
@@ -35,6 +37,7 @@ class _PlayerShellState extends ConsumerState<PlayerShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.play_circle_outline), selectedIcon: Icon(Icons.play_circle_fill), label: 'Drills'),
+          NavigationDestination(icon: Icon(Icons.video_library_outlined), selectedIcon: Icon(Icons.video_library), label: 'Library'),
           NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Leaderboard'),
         ],
         backgroundColor: AppConstants.surfaceColor,

@@ -15,6 +15,19 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   String _filter = 'All'; // All | Football | Kabaddi
 
+  double _scoreFor(Map<String, dynamic>? bySport, num? overall) {
+    if (_filter == 'All') {
+      if (bySport == null || bySport.isEmpty) return (overall ?? 0).toDouble();
+      final values = bySport.values.whereType<num>().map((e) => e.toDouble()).toList();
+      if (values.isEmpty) return (overall ?? 0).toDouble();
+      values.sort((a, b) => b.compareTo(a));
+      return values.first;
+    }
+    final s = bySport?[_filter];
+    if (s is num) return s.toDouble();
+    return (overall ?? 0).toDouble();
+  }
+
   @override
   Widget build(BuildContext context) {
     final me = ref.watch(currentUserProvider).value;
@@ -34,7 +47,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   title: Text('You: ${me.displayName}'),
                   subtitle: Text('Major Sport: ${me.sport ?? '--'}'),
                   trailing: Text(
-                    me.topAiScore?.toStringAsFixed(1) ?? '--',
+                    _scoreFor(me.topAiScoreBySport, me.topAiScore).toStringAsFixed(1),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -44,6 +57,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('users')
+                  .where('userType', isEqualTo: 'player')
+                  .where('topAiScore', isGreaterThan: 0)
                   .orderBy('topAiScore', descending: true)
                   .limit(100)
                   .snapshots(),
@@ -56,15 +71,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 }
 
                 final docs = snapshot.data?.docs ?? [];
-                // Client-side filter to avoid Firestore composite index requirements
+                // Client-side filter for sport since we already filter by userType and score in Firestore
                 final filtered = docs.where((d) {
                   final data = d.data();
-                  final isPlayer = (data['userType'] ?? '') == 'player';
-                  final score = data['topAiScore'];
                   final sport = data['sport'];
-                  final scoreOk = score is num && score > 0;
-                  final sportOk = _filter == 'All' || sport == _filter;
-                  return isPlayer && scoreOk && sportOk;
+                  return _filter == 'All' || sport == _filter;
                 }).toList();
 
                 if (filtered.isEmpty) {
@@ -78,14 +89,27 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     final rank = index + 1;
                     final name = (data['name'] ?? data['email'] ?? '--') as String;
                     final sport = (data['sport'] ?? '--') as String;
-                    final score = (data['topAiScore'] as num).toDouble();
+                    final bySport = (data['topAiScoreBySport'] is Map)
+                        ? Map<String, dynamic>.from(data['topAiScoreBySport'] as Map)
+                        : null;
+                    final overall = data['topAiScore'] as num?;
+                    final score = _scoreFor(bySport, overall);
                     return Card(
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppConstants.primaryColor.withOpacity(0.08),
+                          backgroundColor: AppConstants.primaryColor.withValues(alpha: 0.08),
                           child: Text('$rank'),
                         ),
-                        title: Text(name),
+                        title: Row(
+                          children: [
+                            Expanded(child: Text(name)),
+                            if ((data['hasCloudArtifacts'] ?? false) == true)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 6.0),
+                                child: Icon(Icons.verified, color: AppConstants.accentColor, size: 18),
+                              ),
+                          ],
+                        ),
                         subtitle: Text('Sport: $sport'),
                         trailing: Text(
                           score.toStringAsFixed(1),
@@ -119,7 +143,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               label: Text(o),
               selected: selected,
               onSelected: (_) => setState(() => _filter = o),
-              selectedColor: AppConstants.primaryColor.withOpacity(0.15),
+              selectedColor: AppConstants.primaryColor.withValues(alpha: 0.15),
             ),
           );
         }).toList(),

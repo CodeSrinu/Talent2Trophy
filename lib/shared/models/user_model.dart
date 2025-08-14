@@ -27,6 +27,9 @@ class UserModel {
   // Player flags/scores
   final bool hasUploadedVideo; // whether player has at least one video
   final double? topAiScore; // latest or top AI score for dashboard/leaderboard
+  final Map<String, dynamic>? topAiScoreBySport; // e.g., { Football: 92.1, Kabaddi: 88.0 }
+  final bool hasCloudArtifacts; // true if any overlay/json uploaded to Drive
+  final bool hasCompletedInitialProfile; // true after first profile completion
 
   // Scout specific fields
   final String? organization;
@@ -64,6 +67,9 @@ class UserModel {
     // Player flags/scores
     this.hasUploadedVideo = false,
     this.topAiScore,
+    this.topAiScoreBySport,
+    this.hasCloudArtifacts = false,
+    this.hasCompletedInitialProfile = false,
 
     // Scout fields
     this.organization,
@@ -103,6 +109,9 @@ class UserModel {
       performanceMetrics: data['performanceMetrics'],
       hasUploadedVideo: data['hasUploadedVideo'] ?? false,
       topAiScore: (data['topAiScore'] is num) ? (data['topAiScore'] as num).toDouble() : null,
+      topAiScoreBySport: (data['topAiScoreBySport'] is Map<String, dynamic>) ? data['topAiScoreBySport'] as Map<String, dynamic> : (data['topAiScoreBySport'] is Map ? Map<String, dynamic>.from(data['topAiScoreBySport']) : null),
+      hasCloudArtifacts: data['hasCloudArtifacts'] ?? false,
+      hasCompletedInitialProfile: data['hasCompletedInitialProfile'] ?? false,
 
       // Scout fields
       organization: data['organization'],
@@ -146,6 +155,9 @@ class UserModel {
       performanceMetrics: data['performanceMetrics'],
       hasUploadedVideo: data['hasUploadedVideo'] ?? false,
       topAiScore: (data['topAiScore'] is num) ? (data['topAiScore'] as num).toDouble() : null,
+      topAiScoreBySport: (data['topAiScoreBySport'] is Map<String, dynamic>) ? data['topAiScoreBySport'] as Map<String, dynamic> : (data['topAiScoreBySport'] is Map ? Map<String, dynamic>.from(data['topAiScoreBySport']) : null),
+      hasCloudArtifacts: data['hasCloudArtifacts'] ?? false,
+      hasCompletedInitialProfile: data['hasCompletedInitialProfile'] ?? false,
       organization: data['organization'],
       designation: data['designation'],
       experience: data['experience'],
@@ -179,6 +191,9 @@ class UserModel {
       'performanceMetrics': performanceMetrics,
       'hasUploadedVideo': hasUploadedVideo,
       'topAiScore': topAiScore,
+      'topAiScoreBySport': topAiScoreBySport,
+      'hasCloudArtifacts': hasCloudArtifacts,
+      'hasCompletedInitialProfile': hasCompletedInitialProfile,
       'organization': organization,
       'designation': designation,
       'experience': experience,

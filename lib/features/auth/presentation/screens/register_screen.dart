@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -71,14 +72,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       
       print('RegisterScreen: Registration successful');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Registration successful! Welcome to Talent2Trophy!'),
+            content: Text('Registration successful! Please check your email to verify your account before logging in.'),
             backgroundColor: AppConstants.successColor,
+            duration: Duration(seconds: 5),
           ),
         );
+        // Navigate back to login screen
+        context.go('/login');
       }
     } catch (e) {
       print('RegisterScreen: Registration failed: $e');
@@ -267,23 +271,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   },
                   isLoading: _isLoading,
                 ),
-                
-                const SizedBox(height: 16),
-                
-                // Test Button
-                ElevatedButton(
-                  onPressed: () {
-                    print('RegisterScreen: Test button pressed!');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Test button works!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  },
-                  child: const Text('Test Button'),
-                ),
-                
+
                 const SizedBox(height: 24),
                 
                 // Terms and Conditions
@@ -352,7 +340,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           border: Border.all(
             color: isSelected 
                 ? AppConstants.primaryColor 
-                : AppConstants.textSecondaryColor.withOpacity(0.2),
+                : AppConstants.textSecondaryColor.withValues(alpha: 0.2),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -376,7 +364,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: isSelected 
-                    ? Colors.white.withOpacity(0.8) 
+                    ? Colors.white.withValues(alpha: 0.8)
                     : AppConstants.textSecondaryColor,
               ),
               textAlign: TextAlign.center,
@@ -391,8 +379,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (value == null || value.isEmpty) {
       return 'Password is required';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters long';
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]').hasMatch(value)) {
+      return 'Password must contain:\n• At least one uppercase letter\n• At least one lowercase letter\n• At least one number\n• At least one special character (@\$!%*?&)';
     }
     return null;
   }

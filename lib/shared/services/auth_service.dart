@@ -35,8 +35,12 @@ class AuthService {
         password: password,
       );
       
-      print('AuthService: User created successfully, creating Firestore document');
-      
+      print('AuthService: User created successfully, sending email verification');
+
+      // Send email verification
+      await credential.user!.sendEmailVerification();
+      print('AuthService: Email verification sent');
+
       // Create user document in Firestore
       if (credential.user != null) {
         try {
@@ -82,7 +86,13 @@ class AuthService {
         email: email,
         password: password,
       );
-      
+
+      // Check if email is verified
+      if (credential.user != null && !credential.user!.emailVerified) {
+        await _auth.signOut();
+        throw Exception('Please verify your email before logging in. Check your inbox for the verification link.');
+      }
+
       print('AuthService: Sign in successful, fetching user data from Firestore');
       
       // Get user type from Firestore and save to local storage

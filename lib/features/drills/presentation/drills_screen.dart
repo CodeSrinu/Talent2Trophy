@@ -40,6 +40,8 @@ class DrillsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _recordUploadSection(context, ref),
+          const SizedBox(height: 24),
           _sectionHeader(context, 'Your Major Sport'),
           _majorSportCard(context, user?.sport ?? 'Select in Profile', ref),
           const SizedBox(height: 24),
@@ -58,9 +60,43 @@ class DrillsScreen extends ConsumerWidget {
           ]),
         ],
       ),
-      floatingActionButton: _recordActionsFab(context, ref),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _bottomDock(),
+    );
+  }
+
+  Widget _recordUploadSection(BuildContext context, WidgetRef ref) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _startRecording(context, ref.read(currentUserProvider).value?.sport ?? 'Football'),
+                icon: const Icon(Icons.fiber_manual_record, color: Colors.white),
+                label: const Text('Record Video'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.errorColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await _pickFromGallery(context, ref);
+                },
+                icon: const Icon(Icons.upload_rounded),
+                label: const Text('Upload Video'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -188,37 +224,7 @@ class DrillsScreen extends ConsumerWidget {
     context.go('/record/$sport');
   }
 
-  Widget _recordActionsFab(BuildContext context, WidgetRef ref) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppConstants.surfaceColor,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextButton.icon(
-            onPressed: () => _startRecording(context, ref.read(currentUserProvider).value?.sport ?? 'Football'),
-            icon: const Icon(Icons.fiber_manual_record, color: AppConstants.errorColor),
-            label: const Text('Record'),
-          ),
-          const VerticalDivider(width: 16),
-          TextButton.icon(
-            onPressed: () async {
-              await _pickFromGallery(context, ref);
-            },
-            icon: const Icon(Icons.upload_rounded, color: AppConstants.primaryColor),
-            label: const Text('Upload'),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Future<void> _pickFromGallery(BuildContext context, WidgetRef ref) async {
     final picker = ImagePicker();
@@ -228,8 +234,10 @@ class DrillsScreen extends ConsumerWidget {
 
       // Ask sport/drill since gallery can be any content
       final userSport = ref.read(currentUserProvider).value?.sport ?? 'Football';
+      if (!context.mounted) return;
       final sport = await _pickSport(context, defaultSport: userSport);
       if (sport == null) return;
+      if (!context.mounted) return;
       final drill = await _pickDrill(context, sport);
       if (drill == null) return;
 
@@ -323,13 +331,6 @@ class DrillsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _bottomDock() {
-    return BottomAppBar(
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      height: 48,
-      color: AppConstants.surfaceColor,
-    );
-  }
+
 }
 

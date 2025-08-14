@@ -128,6 +128,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       updateData['height'] = _heightController.text.isNotEmpty ? double.tryParse(_heightController.text) : null;
       updateData['weight'] = _weightController.text.isNotEmpty ? double.tryParse(_weightController.text) : null;
 
+      // Mark initial profile as completed if all required fields are filled
+      final isProfileComplete = updateData['sport'] != null &&
+                               updateData['gender'] != null &&
+                               updateData['region'] != null &&
+                               updateData['age'] != null;
+      if (isProfileComplete) {
+        updateData['hasCompletedInitialProfile'] = true;
+      }
+
       await ref.read(authProvider.notifier).updateUserData(updateData);
 
       if (!mounted) return;
@@ -155,6 +164,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           backgroundColor: AppConstants.successColor,
         ),
       );
+
+      // If this was initial profile completion, navigate to home
+      if (isProfileComplete && !current!.hasCompletedInitialProfile) {
+        // Small delay to let the snackbar show
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted || !context.mounted) return;
+        context.go('/');
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -487,17 +504,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               // Logout button at bottom
               Align(
                 alignment: Alignment.center,
-                child: CustomButton(
-                  text: 'Logout',
-                  type: ButtonType.outline,
-                  backgroundColor: AppConstants.errorColor,
-                  textColor: Colors.white,
+                child: ElevatedButton.icon(
                   onPressed: () async {
                     await ref.read(authProvider.notifier).signOut();
                     if (!mounted) return;
                     if (!context.mounted) return;
                     context.go('/login');
                   },
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text('Logout', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.errorColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
 

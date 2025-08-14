@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show File;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import '../../data/video_repository.dart';
+import '../widgets/overlay_player.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../cloud/cloud_pro_client.dart';
+import '../../../cloud/pro_compare_screen.dart';
+
 import '../../services/file_ops.dart';
 import 'package:talent2trophy/core/constants/app_constants.dart';
 
@@ -101,7 +110,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             },
             itemBuilder: (ctx) => [
               const PopupMenuItem(value: null, child: Text('All')),
-              ...AppConstants.sportsTypes.map((sport) => 
+              ...AppConstants.sportsTypes.map((sport) =>
                 PopupMenuItem(value: sport, child: Text(sport))
               ),
             ],
@@ -233,6 +242,97 @@ class _DetailsScreenState extends State<_DetailsScreen> {
             decoration: const InputDecoration(labelText: 'Notes (coming soon)', border: OutlineInputBorder()),
             maxLines: 3,
           ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final overlayPath = widget.item.path.replaceAll('.mp4', '_overlay.mp4');
+                  final exists = await File(overlayPath).exists();
+                  if (!context.mounted) return;
+                  if (!exists) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Overlay not available yet. Analyze the video first.')),
+                    );
+                    return;
+                  }
+                  if (!context.mounted) return;
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => OverlayPlayer(path: overlayPath)),
+                  );
+                },
+                icon: const Icon(Icons.slideshow),
+                label: const Text('View Overlay'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  try {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Requesting Pro analysis...')),
+                    );
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                    String? driveOverlayUrl;
+                    if (uid != null) {
+                      final doc = await FirebaseFirestore.instance
+                          .collection('users').doc(uid)
+                          .collection('analyses').doc(widget.item.id)
+                          .get();
+                      driveOverlayUrl = doc.data()?['driveOverlayUrl'];
+                      // Simulate/request pro analysis and persist cloudPro
+                      await CloudProClient().requestProAnalysis(
+                        uid: uid,
+                        videoId: widget.item.id,
+                        payload: {
+                          'score': widget.item.analysisScore ?? 0,
+                          'metrics': {},
+                          'driveOverlayUrl': driveOverlayUrl,
+                        },
+                      );
+                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Pro analysis ready (simulated).')),
+                    );
+                  } catch (_) {}
+                },
+                icon: const Icon(Icons.bolt),
+                label: const Text('Request Pro Analysis'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  try {
+                    if (!context.mounted) return;
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                    String? cloudOverlayUrl;
+                    if (uid != null) {
+                      final doc = await FirebaseFirestore.instance
+                          .collection('users').doc(uid)
+                          .collection('analyses').doc(widget.item.id)
+                          .get();
+                      cloudOverlayUrl = doc.data()?['cloudPro']?['overlayUrl'] ?? doc.data()?['driveOverlayUrl'];
+                    }
+                    final localOverlay = widget.item.path.replaceAll('.mp4', '_overlay.mp4');
+                    if (!context.mounted) return;
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ProCompareScreen(
+                          localOverlayPath: localOverlay,
+                          cloudOverlayUrl: cloudOverlayUrl,
+                        ),
+                      ),
+                    );
+                  } catch (_) {}
+                },
+                icon: const Icon(Icons.compare),
+                label: const Text('Compare Pro'),
+              ),
+            ],
+          ),
+
+
         ],
       ),
       floatingActionButton: _ready ? FloatingActionButton(

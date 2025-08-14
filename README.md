@@ -4,6 +4,46 @@
 
 Talent2Trophy is a comprehensive mobile application designed to bridge the gap between talented athletes and scouts/coaches. The app uses advanced AI technology to analyze sports performance through video recordings, providing detailed biomechanics insights and creating a platform for talent discovery.
 
+## 📋 Pre-Demo Testing Checklist
+
+Before demonstrating the app, test these core flows:
+
+### Setup & Authentication
+- [ ] Sign up Player and Scout accounts
+- [ ] Complete Player profile (sport, age, region, gender)
+- [ ] Verify Scout userType in profile
+- [ ] Test "Forgot Password" flow from login screen
+
+### Core Recording & Analysis
+- [ ] Record a Football/Kabaddi video (check quality gates: brightness, pose, body detection)
+- [ ] Confirm analysis.json and overlay.mp4 created beside the video file
+- [ ] Check Library Details: "View Overlay" plays the overlay file
+- [ ] Verify Google Drive upload (overlay.mp4 + analysis.json)
+- [ ] Confirm Pro badge appears on Leaderboard after cloud upload
+
+### Player Navigation
+- [ ] Home tab: dashboard with progress and quick actions
+- [ ] Drills tab: record/upload buttons at top, drill previews work
+- [ ] Library tab: shows recorded videos with details and overlay viewer
+- [ ] Leaderboard tab: per-sport filtering, Pro badges visible
+
+### Scout Flows
+- [ ] Scout Dashboard: see players sorted by score
+- [ ] Filters work: sport, region, age bucket (Under 12, 12-14, etc.), score range slider
+- [ ] Tap player → Player details screen opens
+- [ ] Send invite with message and optional trial date
+- [ ] Player Inbox: Accept/Decline buttons visible for sent invites
+- [ ] Message thread works under each invite (both can send messages)
+
+### Pro Features (Optional)
+- [ ] "Request Pro Analysis" button triggers simulation
+- [ ] "Compare Pro" opens side-by-side overlay comparison screen
+
+### Stability
+- [ ] No crashes on back navigation during recording
+- [ ] Profile completion dialog only shows for new users (not persistent)
+- [ ] AuthWrapper routes correctly: Player → PlayerShell, Scout → ScoutShell
+
 ## 🎯 Vision
 
 To democratize sports talent discovery by providing accessible, AI-powered performance analysis tools and creating a comprehensive platform where athletes can showcase their skills and scouts can discover promising talent.

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:go_router/go_router.dart';
 import 'firebase_options.dart';
 import 'core/constants/app_constants.dart';
@@ -12,10 +12,8 @@ import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/video/presentation/screens/record_screen.dart';
 import 'features/video/presentation/screens/library_screen.dart';
-import 'features/video/presentation/screens/video_analysis_screen.dart';
 import 'features/player_shell/presentation/player_shell.dart';
-import 'features/home/presentation/player_home_screen.dart';
-import 'features/scout/presentation/scout_dashboard_screen.dart';
+import 'features/scout/presentation/scout_shell.dart';
 
 
 void main() async {
@@ -26,28 +24,8 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('Firebase initialized successfully');
-
-    // Test Firebase connection
-    print('Firebase project ID: ${DefaultFirebaseOptions.currentPlatform.projectId}');
-    print('Firebase auth domain: ${DefaultFirebaseOptions.currentPlatform.authDomain}');
-
-    // Test Firestore connection
-    try {
-      print('Testing Firestore connection...');
-      final firestore = FirebaseFirestore.instance;
-      print('Firestore instance created');
-
-      // Try to get a simple document to test connection
-      final testDoc = await firestore.collection('test').doc('connection').get();
-      print('Firestore connection test successful');
-    } catch (firestoreError) {
-      print('Firestore connection test failed: $firestoreError');
-    }
-
-  } catch (e) {
-    print('Firebase initialization failed: $e');
-    // Continue without Firebase for now
+  } catch (_) {
+    // Continue without Firebase for now (app UI will surface errors)
   }
 
   runApp(const ProviderScope(child: MyApp()));
@@ -134,9 +112,9 @@ class AuthWrapper extends ConsumerWidget {
           if (user != null) {
             // Route by user type
             if (user.isPlayer) {
-              return const PlayerHomeScreen();
+              return const PlayerShell();
             } else if (user.isScout) {
-              return const ScoutDashboardScreen();
+              return const ScoutShell();
             } else {
               return const HomeScreen();
             }

@@ -68,8 +68,11 @@ dependencies:
   video_player: ^2.10.0
   fl_chart: ^1.0.0
   google_mlkit_pose_detection: ^0.14.0
-  # FFmpeg (LTS variant recommended by upstream). Using 'ffmpeg_kit_flutter' brings proper maven coords.
   image: ^4.5.4
+  google_sign_in: 6.2.1
+  googleapis: ^14.0.0
+  googleapis_auth: ^2.0.0
+  http: ^1.5.0
 
 dev_dependencies:
   flutter_test:

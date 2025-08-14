@@ -181,6 +181,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 24),
 
+                // Forgot Password Link
+                Center(
+                  child: TextButton(
+                    onPressed: () async {
+                      final email = _emailController.text.trim();
+                      if (email.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter your email first')),
+                        );
+                        return;
+                      }
+                      try {
+                        await ref.read(authProvider.notifier).resetPassword(email);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password reset email sent! Check your inbox.'),
+                            backgroundColor: AppConstants.successColor,
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to send reset email: $e'),
+                            backgroundColor: AppConstants.errorColor,
+                          ),
+                        );
+                      }
+                    },
+                    child: Text(
+                      'Forgot Password?',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppConstants.primaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
                 // Sign Up Link
                 Center(
                   child: Row(
@@ -208,41 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 40),
 
-                // Demo Accounts Info
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppConstants.surfaceColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppConstants.textSecondaryColor.withOpacity(0.2),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Demo Accounts',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'For testing purposes, you can use these demo accounts:',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppConstants.textSecondaryColor,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildDemoAccount('Player', 'player@demo.com', 'password123'),
-                      const SizedBox(height: 4),
-                      _buildDemoAccount('Scout', 'scout@demo.com', 'password123'),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -251,34 +259,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildDemoAccount(String type, String email, String password) {
-    final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: AppConstants.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            type == 'Player' ? Icons.person : Icons.search,
-            size: 16,
-            color: AppConstants.textSecondaryColor,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$type: $email / $password',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppConstants.textSecondaryColor,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
